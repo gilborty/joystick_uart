@@ -19,7 +19,7 @@ import serial
 import debug_messages as dm
 
 # Define some colors
-BLACK = (0,   0,   0)
+BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 
 # This is a simple class that will help us print to the screen
@@ -92,7 +92,7 @@ enablePressed = False
 disablePressed = False
 
 # -------- Main Program Loop -----------
-while is_running == True:
+while is_running:
     # EVENT PROCESSING STEP
     for event in pygame.event.get():  # User did something
 
