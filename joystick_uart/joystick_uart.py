@@ -30,7 +30,7 @@ class TextPrint:
         self.font = pygame.font.Font(None, 20)
 
     def print_to_screen(self, screen, textString):
-        textBitmap = self.font.render(textString, True, WHITE)
+        textBitmap = self.font.render(textString, True, BLACK)
         screen.blit(textBitmap, [self.x, self.y])
         self.y += self.line_height
         
@@ -44,107 +44,105 @@ class TextPrint:
         
     def unindent(self):
         self.x -= 10
+    
 
-#Global variable for the main execution loop
-is_running = False
+pygame.init()
+ 
+# Set the width and height of the screen [width,height]
+size = [500, 700]
+screen = pygame.display.set_mode(size)
 
-def init():
-    """ Function to Initialize
+pygame.display.set_caption("My Game")
 
-        Args:
+#Loop until the user clicks the close button.
+is_running = True
 
-        Returns:
-            bool: The return value. True if initialization was successful, False if it failed
-    """
+# Used to manage how fast the screen updates
+clock = pygame.time.Clock()
 
-    #Initialize pygame
-    dm.print_info("Initializing PyGame")
-    pygame.init()
+# Initialize the joysticks
+pygame.joystick.init()
+    
+# Get ready to print
+text_print = TextPrint()
 
-    pygame.display.set_caption("Joystick to UART")
+# -------- Main Program Loop -----------
+while is_running == True:
+    # EVENT PROCESSING STEP
+    for event in pygame.event.get(): # User did something
 
-    #Loop until the user clicks the close button.
-    global is_running
-    is_running = True
+        #Handle quits
+        if event.type == pygame.QUIT: 
+            is_running = False
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            is_running = False
 
-    # Initialize the joysticks
-    pygame.joystick.init()
+    # DRAWING STEP
+    screen.fill(WHITE)
+    text_print.reset()
 
-    return True
+    # Get count of joysticks
+    joystick_count = pygame.joystick.get_count()
 
-
-def main():
-    """ The main point of execution of the script
-
-        Args:
-
-        Returns:
-    """
-    global is_running
-
-    if init():
-        #Start the main loop of the script
-        dm.print_info("Starting joystick_uart")
-
-        #Print to window handle
-        text_print = TextPrint()
-
-        # Used to manage how fast the screen updates
-        clock = pygame.time.Clock()
-
-        # Set the width and height of the screen [width,height]
-        size = [500, 700]
-        screen = pygame.display.set_mode(size)
+    text_print.print_to_screen(screen, "Number of joysticks: {}".format(joystick_count))
+    text_print.indent()
+    
+    # For each joystick:
+    for i in range(joystick_count):
+        joystick = pygame.joystick.Joystick(i)
+        joystick.init()
+    
+        text_print.print_to_screen(screen, "Joystick {}".format(i))
+        text_print.indent()
+    
+        # Get the name from the OS for the controller/joystick
+        name = joystick.get_name()
+        text_print.print_to_screen(screen, "Joystick name: {}".format(name))
         
-        while is_running:
-
-            # EVENT PROCESSING STEP
-            for event in pygame.event.get(): # User did something
-                
-                #Handle key presses
-                if event.type == pygame.KEYDOWN:
-                    
-                    #If user presses escape key, quit
-                    if event.key == pygame.K_ESCAPE:
-                        is_running = False
-
-            # DRAWING STEP
-            # First, clear the screen to white. Don't put other drawing commands
-            # above this, or they will be erased with this command.
-            screen.fill(WHITE)
-            text_print.reset()
-
-            #Get the number of joysticks connected
-            joystick_count = pygame.joystick.get_count()
-            dm.print_info(joystick_count)
+        # Usually axis run in pairs, up/down for one, and left/right for
+        # the other.
+        axes = joystick.get_numaxes()
+        text_print.print_to_screen(screen, "Number of axes: {}".format(axes))
+        text_print.indent()
+        
+        for i in range( axes ):
+            axis = joystick.get_axis( i )
+            text_print.print_to_screen(screen, "Axis {} value: {:>6.3f}".format(i, axis))
+        text_print.unindent()
             
-            text_print.print_to_screen(screen, "Number of joysticks: {}".format(joystick_count) )
-            text_print.indent()
+        buttons = joystick.get_numbuttons()
+        text_print.print_to_screen(screen, "Number of buttons: {}".format(buttons))
+        text_print.indent()
 
-            #For all of the joysticks connected
-            for index in range(joystick_count):
-                
-                #init this joystic
-                joystick = pygame.joystick.Joystick(index)
-                joystick.init()
-
-
-
+        for i in range( buttons ):
+            button = joystick.get_button( i )
+            text_print.print_to_screen(screen, "Button {:>2} value: {}".format(i,button))
+        text_print.unindent()
             
-            # Limit to 30 frames per second
-            clock.tick(30)
+        # Hat switch. All or nothing for direction, not like joysticks.
+        # Value comes back in an array.
+        hats = joystick.get_numhats()
+        text_print.print_to_screen(screen, "Number of hats: {}".format(hats))
+        text_print.indent()
 
-        dm.print_warning("Closing.")
-        pygame.quit()
+        for i in range( hats ):
+            hat = joystick.get_hat( i )
+            text_print.print_to_screen(screen, "Hat {} value: {}".format(i, str(hat)))
+        text_print.unindent()
+        
+        text_print.unindent()
 
-    else:
-        dm.print_fatal("Failed to initialize. Exiting")
-        pygame.quit()
+    
+    # ALL CODE TO DRAW SHOULD GO ABOVE THIS COMMENT
+    
+    # Go ahead and update the screen with what we've drawn.
+    pygame.display.flip()
 
-
-
-
-
-if __name__ == "__main__":
-
-    main()
+    # Limit to 60 frames per second
+    clock.tick(60)
+    
+# Close the window and quit.
+# If you forget this line, the program will 'hang'
+# on exit if running from IDLE.
+dm.print_warning("Closing...")
+pygame.quit()
