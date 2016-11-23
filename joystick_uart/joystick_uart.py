@@ -14,6 +14,7 @@ Todo:
 """
 
 import pygame
+import serial
 
 import debug_messages as dm
 
@@ -44,8 +45,21 @@ class TextPrint:
         
     def unindent(self):
         self.x -= 10
-    
 
+#Serial init
+default_port = '/dev/ttyUSB0'
+default_baud_rate = 115200
+
+ser = serial.Serial(
+    port=default_port,
+    baudrate=default_baud_rate,
+    parity=serial.PARITY_NONE,
+    stopbits=serial.STOPBITS_ONE,
+    bytesize=serial.EIGHTBITS
+)
+ser.isOpen()
+
+# Main script init
 pygame.init()
  
 # Set the width and height of the screen [width,height]
@@ -98,39 +112,47 @@ while is_running == True:
         # Get the name from the OS for the controller/joystick
         name = joystick.get_name()
         text_print.print_to_screen(screen, "Joystick name: {}".format(name))
-        
-        # Usually axis run in pairs, up/down for one, and left/right for
-        # the other.
-        axes = joystick.get_numaxes()
-        text_print.print_to_screen(screen, "Number of axes: {}".format(axes))
-        text_print.indent()
-        
-        for i in range( axes ):
-            axis = joystick.get_axis( i )
-            text_print.print_to_screen(screen, "Axis {} value: {:>6.3f}".format(i, axis))
-        text_print.unindent()
-            
-        buttons = joystick.get_numbuttons()
-        text_print.print_to_screen(screen, "Number of buttons: {}".format(buttons))
+
+        #Since we are only controlling forward and backward control of motors, only read the value from axis 1
         text_print.indent()
 
-        for i in range( buttons ):
-            button = joystick.get_button( i )
-            text_print.print_to_screen(screen, "Button {:>2} value: {}".format(i,button))
-        text_print.unindent()
-            
-        # Hat switch. All or nothing for direction, not like joysticks.
-        # Value comes back in an array.
-        hats = joystick.get_numhats()
-        text_print.print_to_screen(screen, "Number of hats: {}".format(hats))
-        text_print.indent()
-
-        for i in range( hats ):
-            hat = joystick.get_hat( i )
-            text_print.print_to_screen(screen, "Hat {} value: {}".format(i, str(hat)))
-        text_print.unindent()
+        #Boolean for zero input
+        should_send_axis = False
+        axis = joystick.get_axis(1)
+        text_print.print_to_screen(screen, "Axis {} value: {:>6.3f}".format(1, axis))
+        if axis == 0:
+            if should_send_axis:
+                #Send one zero command
+                ser.write("Axis:" + str(axis) + '\r\n')
+                ser.flush()
+                dm.print_info("Wrote axis:" + axis)
+                should_send_axis = False
+        else:
+            should_send_axis = True
         
-        text_print.unindent()
+
+        #Button 10 Disable
+        disable_button = joystick.get_button(10)
+        text_print.print_to_screen(screen, "Disable Button: {}".format(disable_button))
+        if disable_button:
+            #Send an enable signal over serial
+            #I typically need a return carriage, your device may not need it
+            ser.write("Enable" + '\r\n')
+            ser.flush()
+            dm.print_info("Wrote enable")
+        
+        #Button 11 Enable
+        enable_button = joystick.get_button(11)
+        if enable_button:
+            #Send an enable signal over serial
+            #I typically need a return carriage, your device may not need it
+            ser.write("Disable" + '\r\n')
+            ser.flush()
+            dm.print_info("Wrote enable")
+
+        text_print.print_to_screen(screen, "Enable Button: {}".format(enable_button))
+
+        text_print.unindent()        
 
     
     # ALL CODE TO DRAW SHOULD GO ABOVE THIS COMMENT
@@ -145,4 +167,5 @@ while is_running == True:
 # If you forget this line, the program will 'hang'
 # on exit if running from IDLE.
 dm.print_warning("Closing...")
+ser.close()
 pygame.quit()
