@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """A simple application to read joystick inputs and send them over UART
 
+Modified from: http://www.pygame.org/docs/ref/joystick.html
+
 Example:
         $ python joystick_uart.py
 
@@ -28,7 +30,7 @@ class TextPrint:
         self.font = pygame.font.Font(None, 20)
 
     def print_to_screen(self, screen, textString):
-        textBitmap = self.font.render(textString, True, BLACK)
+        textBitmap = self.font.render(textString, True, WHITE)
         screen.blit(textBitmap, [self.x, self.y])
         self.y += self.line_height
         
@@ -59,11 +61,7 @@ def init():
     dm.print_info("Initializing PyGame")
     pygame.init()
 
-    # Set the width and height of the screen [width,height]
-    size = [500, 700]
-    screen = pygame.display.set_mode(size)
-
-    pygame.display.set_caption("My Game")
+    pygame.display.set_caption("Joystick to UART")
 
     #Loop until the user clicks the close button.
     global is_running
@@ -93,6 +91,10 @@ def main():
 
         # Used to manage how fast the screen updates
         clock = pygame.time.Clock()
+
+        # Set the width and height of the screen [width,height]
+        size = [500, 700]
+        screen = pygame.display.set_mode(size)
         
         while is_running:
 
@@ -106,8 +108,18 @@ def main():
                     if event.key == pygame.K_ESCAPE:
                         is_running = False
 
+            # DRAWING STEP
+            # First, clear the screen to white. Don't put other drawing commands
+            # above this, or they will be erased with this command.
+            screen.fill(WHITE)
+            text_print.reset()
+
             #Get the number of joysticks connected
             joystick_count = pygame.joystick.get_count()
+            dm.print_info(joystick_count)
+            
+            text_print.print_to_screen(screen, "Number of joysticks: {}".format(joystick_count) )
+            text_print.indent()
 
             #For all of the joysticks connected
             for index in range(joystick_count):
