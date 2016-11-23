@@ -80,6 +80,14 @@ pygame.joystick.init()
 # Get ready to print
 text_print = TextPrint()
 
+# Axis state info
+lastAxis = 0.0
+firstTime = True
+
+# Button state info
+enablePressed = False
+disablePressed = False
+
 # -------- Main Program Loop -----------
 while is_running == True:
     # EVENT PROCESSING STEP
@@ -117,38 +125,55 @@ while is_running == True:
         text_print.indent()
 
         #Boolean for zero input
-        should_send_axis = False
         axis = joystick.get_axis(1)
         text_print.print_to_screen(screen, "Axis {} value: {:>6.3f}".format(1, axis))
-        if axis == 0:
-            if should_send_axis:
-                #Send one zero command
-                ser.write("Axis:" + str(axis) + '\r\n')
-                ser.flush()
-                dm.print_info("Wrote axis:" + axis)
-                should_send_axis = False
-        else:
-            should_send_axis = True
-        
+    
+        if firstTime:
+            ser.write("Axis:" + str(axis) + '\r\n') 
+            ser.flush()
+            dm.print_info("Wrote axis:" + str(axis))
+            lastAxis = axis
+            firstTime = False
+        elif axis != lastAxis:
+            ser.write("Axis:" + str(axis) + '\r\n') 
+            ser.flush()
+            dm.print_info("Wrote axis:" + str(axis))
+            lastAxis = axis
 
         #Button 10 Disable
         disable_button = joystick.get_button(10)
         text_print.print_to_screen(screen, "Disable Button: {}".format(disable_button))
-        if disable_button:
-            #Send an enable signal over serial
-            #I typically need a return carriage, your device may not need it
-            ser.write("Enable" + '\r\n')
+
+        # Not pressed and wasn't pressed 
+            # Do nothing
+        # Not pressed but had been pressed (released)
+        if (not disable_button) and disablePressed:
+            disablePressed = False
+        # Pressed but hadn't been pressed (pressed)
+        elif disable_button and (not disablePressed):
+            ser.write("Disable" + '\r\n')
             ser.flush()
-            dm.print_info("Wrote enable")
+            dm.print_info("Wrote disable")
+            disablePressed = True
+        # Pressed and had been pressed (held)
+            # Do nothing
         
         #Button 11 Enable
         enable_button = joystick.get_button(11)
-        if enable_button:
-            #Send an enable signal over serial
-            #I typically need a return carriage, your device may not need it
-            ser.write("Disable" + '\r\n')
+
+        # Not pressed and wasn't pressed 
+            # Do nothing
+        # Not pressed but had been pressed (released)
+        if (not enable_button) and enablePressed:
+            enablePressed = False
+        # Pressed but hadn't been pressed (pressed)
+        elif enable_button and (not enablePressed):
+            ser.write("Enable" + '\r\n')
             ser.flush()
-            dm.print_info("Wrote enable")
+            dm.print_info("Wrote Enable")
+            enablePressed = True
+        # Pressed and had been pressed (held)
+            # Do nothing
 
         text_print.print_to_screen(screen, "Enable Button: {}".format(enable_button))
 
