@@ -15,6 +15,7 @@ Todo:
 
 import pygame
 import serial
+import argparse
 
 import debug_messages as dm
 
@@ -53,14 +54,38 @@ class TextPrint:
 default_port = '/dev/ttyUSB0'
 default_baud_rate = 115200
 
-ser = serial.Serial(
-    port=default_port,
-    baudrate=default_baud_rate,
-    parity=serial.PARITY_NONE,
-    stopbits=serial.STOPBITS_ONE,
-    bytesize=serial.EIGHTBITS
-)
-ser.isOpen()
+# Get arguments from command line
+parser = argparse.ArgumentParser()
+parser.add_argument("--port", help="Set the port to send joystick commands to")
+parser.add_argument("--baud", help="Set the baud rate")
+args = parser.parse_args()
+
+# Setup serial port
+port = default_port
+if args.port == None:
+    dm.print_warning(("No serial port specified, using default %s" % default_port))
+else:
+    port = args.port
+
+baud_rate = default_baud_rate
+if args.baud == None:
+    dm.print_warning(("No baud rate specified, using default %s" % baud_rate))
+else:
+    baud_rate = args.baud
+
+# Try to setup the serial connection
+try:
+    ser = serial.Serial(
+        port=port,
+        baudrate=baud_rate,
+        parity=serial.PARITY_NONE,
+        stopbits=serial.STOPBITS_ONE,
+        bytesize=serial.EIGHTBITS
+    )
+    
+except(OSError, serial.SerialException):
+    dm.print_fatal(("Could not open port %s with baud rate: %s" % (port, baud_rate)))
+    exit()
 
 # Main script init
 pygame.init()
